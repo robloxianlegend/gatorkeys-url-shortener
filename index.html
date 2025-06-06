@@ -31,7 +31,7 @@
           throw new Error(err.error || 'Unknown error')
         }
         const data = await res.json()
-        result.innerHTML = `Short URL: <a href="${data.short}" target="_blank" rel="noopener">${data.short}</a>`
+        result.innerHTML = `Short URL: <a href="${data.short}" target="_blank" rel="noopener noreferrer">${data.short}</a>`
       } catch (error) {
         result.textContent = `error creating short URL: ${error.message}`
       }
