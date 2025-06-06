@@ -6,20 +6,44 @@ const supabase = createClient(
 )
 
 export default async function handler(req, res) {
-  if (req.url === '/favicon.ico') {
-    return res.status(204).end()
-  }
-
   try {
     if (req.method === 'POST') {
-      const { url } = req.body
-      if (!url) return res.status(400).json({ error: 'Missing URL' })
+      if (!req.headers['content-type'] || !req.headers['content-type'].includes('application/json')) {
+        return res.status(415).json({ error: 'Content-Type must be application/json' })
+      }
 
-      const code = Math.random().toString(36).substring(2, 8)
+      let body = ''
+      for await (const chunk of req) body += chunk
+
+      let data
+      try {
+        data = JSON.parse(body)
+      } catch {
+        return res.status(400).json({ error: 'Invalid JSON' })
+      }
+
+      const { url } = data
+      if (!url || typeof url !== 'string') return res.status(400).json({ error: 'Missing or invalid URL' })
+
+      // Basic URL validation
+      try {
+        new URL(url)
+      } catch {
+        return res.status(400).json({ error: 'Invalid URL format' })
+      }
+
+      // Generate unique 6-char code, retry if collision
+      let code
+      for (let i = 0; i < 5; i++) {
+        code = Math.random().toString(36).substring(2, 8)
+        const { data: existing } = await supabase.from('links').select('code').eq('code', code).single()
+        if (!existing) break
+        if (i === 4) return res.status(500).json({ error: 'Failed to generate unique code' })
+      }
 
       const { error } = await supabase.from('links').insert([{ code, url }])
       if (error) {
-        console.error('Supabase insert error:', error)
+        console.error('DB insert error:', error)
         return res.status(500).json({ error: 'Failed to store link' })
       }
 
@@ -27,7 +51,11 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'GET') {
-      const code = req.query.code
+      let code = req.query.code
+      if (!code) {
+        const urlParts = req.url.split('/')
+        code = urlParts[urlParts.length - 1] || null
+      }
       if (!code) return res.status(400).json({ error: 'Missing code' })
 
       const { data, error } = await supabase.from('links').select('url').eq('code', code).single()
@@ -38,9 +66,9 @@ export default async function handler(req, res) {
       return
     }
 
-    res.status(405).end()
-  } catch (e) {
-    console.error('API error:', e)
-    res.status(500).json({ error: e.message || 'Internal Server Error' })
+    res.status(405).json({ error: 'Method not allowed' })
+  } catch (err) {
+    console.error('API unexpected error:', err)
+    res.status(500).json({ error: 'Internal Server Error' })
   }
 }
