@@ -13,7 +13,6 @@ export default async function handler(req, res) {
       }
 
       const data = await req.json()
-
       const { url } = data
       if (!url || typeof url !== 'string') {
         return res.status(400).json({ error: 'Missing or invalid URL' })
@@ -51,7 +50,7 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'GET') {
-      const code = req.query.code || null
+      const code = req.query.code
       if (!code) return res.status(400).json({ error: 'Missing code' })
 
       const { data, error } = await supabase.from('links').select('url').eq('code', code).single()
