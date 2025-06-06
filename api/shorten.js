@@ -6,64 +6,48 @@ const supabase = createClient(
 )
 
 export default async function handler(req, res) {
-  try {
-    if (req.method === 'POST') {
-      if (!req.headers['content-type'] || !req.headers['content-type'].includes('application/json')) {
-        return res.status(415).json({ error: 'Content-Type must be application/json' })
-      }
-
-      const data = await req.json()
-      const { url } = data
-      if (!url || typeof url !== 'string') {
-        return res.status(400).json({ error: 'Missing or invalid URL' })
-      }
-
-      try {
-        new URL(url)
-      } catch {
-        return res.status(400).json({ error: 'Invalid URL format' })
-      }
-
-      let code
-      for (let i = 0; i < 5; i++) {
-        code = Math.random().toString(36).substring(2, 8)
-        const { data: existing, error: selectError } = await supabase
-          .from('links')
-          .select('code')
-          .eq('code', code)
-          .single()
-        if (selectError && !selectError.message.includes('No rows found')) {
-          console.error('DB select error:', selectError)
-          return res.status(500).json({ error: 'Database error' })
-        }
-        if (!existing) break
-        if (i === 4) return res.status(500).json({ error: 'Failed to generate unique code' })
-      }
-
-      const { error: insertError } = await supabase.from('links').insert([{ code, url }])
-      if (insertError) {
-        console.error('DB insert error:', insertError)
-        return res.status(500).json({ error: 'Failed to store link' })
-      }
-
-      return res.status(200).json({ short: `https://shower.gatorkeys.xyz/${code}` })
-    }
-
-    if (req.method === 'GET') {
-      const code = req.query.code
-      if (!code) return res.status(400).json({ error: 'Missing code' })
-
-      const { data, error } = await supabase.from('links').select('url').eq('code', code).single()
-      if (error || !data) return res.status(404).send('Not found')
-
-      res.writeHead(302, { Location: data.url })
-      res.end()
-      return
-    }
-
-    res.status(405).json({ error: 'Method not allowed' })
-  } catch (err) {
-    console.error('API unexpected error:', err)
-    res.status(500).json({ error: 'Internal Server Error' })
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST')
+    return res.status(405).json({ error: 'Method Not Allowed' })
   }
+
+  if (!req.headers['content-type'] || !req.headers['content-type'].includes('application/json')) {
+    return res.status(415).json({ error: 'Content-Type must be application/json' })
+  }
+
+  const { url } = req.body
+
+  if (!url || typeof url !== 'string') {
+    return res.status(400).json({ error: 'Missing or invalid URL' })
+  }
+
+  try {
+    new URL(url)
+  } catch {
+    return res.status(400).json({ error: 'Invalid URL format' })
+  }
+
+  let code
+  for (let i = 0; i < 5; i++) {
+    code = Math.random().toString(36).substring(2, 8)
+    const { data: existing, error: selectError } = await supabase
+      .from('links')
+      .select('code')
+      .eq('code', code)
+      .single()
+    if (selectError && !selectError.message.includes('No rows found')) {
+      console.error('DB select error:', selectError)
+      return res.status(500).json({ error: 'Database error' })
+    }
+    if (!existing) break
+    if (i === 4) return res.status(500).json({ error: 'Failed to generate unique code' })
+  }
+
+  const { error: insertError } = await supabase.from('links').insert([{ code, url }])
+  if (insertError) {
+    console.error('DB insert error:', insertError)
+    return res.status(500).json({ error: 'Failed to store link' })
+  }
+
+  return res.status(200).json({ short: `https://shower.gatorkeys.xyz/${code}` })
 }
