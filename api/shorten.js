@@ -12,7 +12,7 @@ export default async function handler(req, res) {
     const { error } = await supabase.from('links').insert([{ code, url }])
     if (error) return res.status(500).json({ error: 'Failed to store link' })
 
-    return res.status(200).json({ short: `https://gatorkeys.xyz/${code}` })
+    return res.status(200).json({ short: `https://shower.gatorkeys.xyz/${code}` })
   }
 
   if (req.method === 'GET') {
