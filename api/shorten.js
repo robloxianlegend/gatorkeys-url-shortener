@@ -51,9 +51,7 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'GET') {
-      // Expect code as query param or from URL path (next.js api routes usually only have query)
       const code = req.query.code || null
-
       if (!code) return res.status(400).json({ error: 'Missing code' })
 
       const { data, error } = await supabase.from('links').select('url').eq('code', code).single()
