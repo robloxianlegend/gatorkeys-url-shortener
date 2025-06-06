@@ -18,17 +18,22 @@
 
     form.addEventListener('submit', async e => {
       e.preventDefault()
-      const url = document.getElementById('url').value
-      const res = await fetch('/api/shorten', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url })
-      })
-      const data = await res.json()
-      if (data.short) {
-        result.textContent = `Short URL: ${data.short}`
-      } else {
-        result.textContent = 'Error creating short URL.'
+      result.textContent = 'Loading...'
+      const url = document.getElementById('url').value.trim()
+      try {
+        const res = await fetch('/api/shorten', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        })
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}))
+          throw new Error(err.error || 'Unknown error')
+        }
+        const data = await res.json()
+        result.innerHTML = `Short URL: <a href="${data.short}" target="_blank" rel="noopener">${data.short}</a>`
+      } catch (error) {
+        result.textContent = `Error creating short URL: ${error.message}`
       }
     })
   </script>
