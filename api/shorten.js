@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
   'https://apwdxzejpatyqqzmenet.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFwd2R4emVqcGF0eXFxemVlbmV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkyMDA1NDcsImV4cCI6MjA2NDc3NjU0N30.AY-bd2b3OGCtmJVjYSUxWtqcJjNmL9H5tOctL1sIyO8'
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFwd2R4emVqcGF0eXFxemV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkyMDA1NDcsImV4cCI6MjA2NDc3NjU0N30.AY-bd2b3OGCtmJVjYSUxWtqcJjNmL9H5tOctL1sIyO8'
 )
 
 export default async function handler(req, res) {
@@ -12,18 +12,12 @@ export default async function handler(req, res) {
         return res.status(415).json({ error: 'Content-Type must be application/json' })
       }
 
-      let body = ''
-      for await (const chunk of req) body += chunk
-
-      let data
-      try {
-        data = JSON.parse(body)
-      } catch {
-        return res.status(400).json({ error: 'Invalid JSON' })
-      }
+      const data = await req.json()
 
       const { url } = data
-      if (!url || typeof url !== 'string') return res.status(400).json({ error: 'Missing or invalid URL' })
+      if (!url || typeof url !== 'string') {
+        return res.status(400).json({ error: 'Missing or invalid URL' })
+      }
 
       try {
         new URL(url)
@@ -34,7 +28,11 @@ export default async function handler(req, res) {
       let code
       for (let i = 0; i < 5; i++) {
         code = Math.random().toString(36).substring(2, 8)
-        const { data: existing, error: selectError } = await supabase.from('links').select('code').eq('code', code).single()
+        const { data: existing, error: selectError } = await supabase
+          .from('links')
+          .select('code')
+          .eq('code', code)
+          .single()
         if (selectError && !selectError.message.includes('No rows found')) {
           console.error('DB select error:', selectError)
           return res.status(500).json({ error: 'Database error' })
@@ -53,11 +51,9 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'GET') {
-      let code = req.query.code
-      if (!code) {
-        const urlParts = req.url.split('/')
-        code = urlParts[urlParts.length - 1] || null
-      }
+      // Expect code as query param or from URL path (next.js api routes usually only have query)
+      const code = req.query.code || null
+
       if (!code) return res.status(400).json({ error: 'Missing code' })
 
       const { data, error } = await supabase.from('links').select('url').eq('code', code).single()
