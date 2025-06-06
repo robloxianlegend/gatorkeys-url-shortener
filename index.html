@@ -33,7 +33,7 @@
         const data = await res.json()
         result.innerHTML = `Short URL: <a href="${data.short}" target="_blank" rel="noopener">${data.short}</a>`
       } catch (error) {
-        result.textContent = `Error creating short URL: ${error.message}`
+        result.textContent = `error creating short URL: ${error.message}`
       }
     })
   </script>
