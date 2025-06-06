@@ -25,25 +25,27 @@ export default async function handler(req, res) {
       const { url } = data
       if (!url || typeof url !== 'string') return res.status(400).json({ error: 'Missing or invalid URL' })
 
-      // Basic URL validation
       try {
         new URL(url)
       } catch {
         return res.status(400).json({ error: 'Invalid URL format' })
       }
 
-      // Generate unique 6-char code, retry if collision
       let code
       for (let i = 0; i < 5; i++) {
         code = Math.random().toString(36).substring(2, 8)
-        const { data: existing } = await supabase.from('links').select('code').eq('code', code).single()
+        const { data: existing, error: selectError } = await supabase.from('links').select('code').eq('code', code).single()
+        if (selectError && !selectError.message.includes('No rows found')) {
+          console.error('DB select error:', selectError)
+          return res.status(500).json({ error: 'Database error' })
+        }
         if (!existing) break
         if (i === 4) return res.status(500).json({ error: 'Failed to generate unique code' })
       }
 
-      const { error } = await supabase.from('links').insert([{ code, url }])
-      if (error) {
-        console.error('DB insert error:', error)
+      const { error: insertError } = await supabase.from('links').insert([{ code, url }])
+      if (insertError) {
+        console.error('DB insert error:', insertError)
         return res.status(500).json({ error: 'Failed to store link' })
       }
 
