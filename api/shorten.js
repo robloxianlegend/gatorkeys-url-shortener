@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
   'https://apwdxzejpatyqqzmenet.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFwd2R4emVqcGF0eXFxem1lbmV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkyMDA1NDcsImV4cCI6MjA2NDc3NjU0N30.AY-bd2b3OGCtmJVjYSUxWtqcJjNmL9H5tOctL1sIyO8'
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFwd2R4emVqcGF0eXFxemVlbmV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkyMDA1NDcsImV4cCI6MjA2NDc3NjU0N30.AY-bd2b3OGCtmJVjYSUxWtqcJjNmL9H5tOctL1sIyO8'
 )
 
 export default async function handler(req, res) {
@@ -18,7 +18,10 @@ export default async function handler(req, res) {
       const code = Math.random().toString(36).substring(2, 8)
 
       const { error } = await supabase.from('links').insert([{ code, url }])
-      if (error) return res.status(500).json({ error: 'Failed to store link' })
+      if (error) {
+        console.error('Supabase insert error:', error)
+        return res.status(500).json({ error: 'Failed to store link' })
+      }
 
       return res.status(200).json({ short: `https://shower.gatorkeys.xyz/${code}` })
     }
