@@ -19,7 +19,7 @@
     form.addEventListener('submit', async e => {
       e.preventDefault()
       const url = document.getElementById('url').value
-      const res = await fetch('/api/shorten', {
+      const res = await fetch('/api/shorten.js', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url })
